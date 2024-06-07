@@ -26,6 +26,7 @@ public class GameBoy
         Paused = false;
         Running = true;
         Ticks = 0;
+        
         Console.WriteLine("Game Boy Running");
 
         while (Running)
