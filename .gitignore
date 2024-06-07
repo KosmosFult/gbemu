@@ -1,0 +1,8 @@
+bin/
+obj/
+SDL2-CS
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+sdl2*
+roms
