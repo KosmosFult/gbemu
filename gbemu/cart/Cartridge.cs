@@ -1,3 +1,5 @@
+using gbemu;
+
 namespace Gbemu.cart;
 
 using System;
@@ -21,7 +23,7 @@ public struct RomHeader
     public UInt16 GlobalChecksum; // 全局校验和
 }
 
-public class Cartridge
+public class Cartridge : AddressSpace
 {
     public string Filename { get; private set; }
     public int RomSize { get; private set; }
@@ -131,6 +133,7 @@ public class Cartridge
         [0x99] = "Pack in soft",
         [0xA4] = "Konami (Yu-Gi-Oh!)"
     };
+    
 
     // 加载ROM文件
     public bool LoadCart(string path)
@@ -209,15 +212,31 @@ public class Cartridge
     }
     
     // 读取ROM数据
-    public byte ReadRom(ushort address)
+    private byte ReadRom(ushort address)
     {
         return RomData[address];
     }
 
     // 写入ROM数据
-    public void WriteRom(ushort address, byte value)
+    private void WriteRom(ushort address, byte value)
     {
         // 实现写入逻辑...
         throw new NotImplementedException();
+    }
+
+    public bool Accepts(ushort address)
+    {
+        // return (address < 0x8000) || (address >= 0xa000 && address < 0xc000);
+        return ((address & 0x8000) == 0) || (((address & 0xd000) ^ 0xa000) == 0);
+    }
+
+    public void SetByte(ushort address, byte value)
+    {
+        WriteRom(address, value);
+    }
+
+    public byte GetByte(ushort address)
+    {
+        return ReadRom(address);
     }
 }
