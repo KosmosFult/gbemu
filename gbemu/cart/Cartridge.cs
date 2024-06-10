@@ -6,12 +6,12 @@ using System;
 using System.IO;
 
 // 定义ROM头结构体
-public struct RomHeader
+public class RomHeader
 {
     public byte[] Entry; // 入口点代码，长度为4
     public byte[] Logo; // Logo数据，长度为0x30
     public string Title; // 游戏标题，长度为16
-    public UInt16 NewLicCode; // 新的许可证代码
+    public ushort NewLicCode; // 新的许可证代码
     public byte SgbFlag; // SGB标志
     public byte Type; // 游戏类型
     public byte RomSize; // ROM大小
@@ -20,10 +20,10 @@ public struct RomHeader
     public byte LicCode; // 许可证代码
     public byte Version; // 版本号
     public byte CheckSum; // 校验和
-    public UInt16 GlobalChecksum; // 全局校验和
+    public ushort GlobalChecksum; // 全局校验和
 }
 
-public class Cartridge : AddressSpace
+public class Cartridge : IAddressSpace
 {
     public string Filename { get; private set; }
     public int RomSize { get; private set; }
@@ -146,7 +146,7 @@ public class Cartridge : AddressSpace
                 RomSize = (int)fs.Length;
                 RomData = new byte[RomSize];
                 fs.Read(RomData, 0, (int)fs.Length);
-
+                
                 // 从ROM数据中解析ROM头信息
                 Header = new RomHeader
                 {
@@ -177,9 +177,9 @@ public class Cartridge : AddressSpace
             Console.WriteLine("\t LIC Code : {0:X2} ({1})", Header.LicCode, CartLicName());
             Console.WriteLine("\t ROM Vers : {0:X2}", Header.Version);
 
-            UInt16 x = 0;
-            for (UInt16 i=0x0134; i<=0x014C; i++) {
-                x = (UInt16)(x - (UInt16)RomData[i]-1);
+            ushort x = 0;
+            for (ushort i=0x0134; i<=0x014C; i++) {
+                x = (ushort)(x - (ushort)RomData[i]-1);
             }
             
             Console.WriteLine("\t Checksum : {0:X2} ({1})\n", Header.CheckSum, (x & 0xFF)!=0 ? "PASSED" : "FAILED");

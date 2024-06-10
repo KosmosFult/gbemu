@@ -1,6 +1,7 @@
 // using System.IO;
 
 using Gbemu.cart;
+using gbemu.cpu;
 using SDL2;
 
 namespace gbemu;
@@ -22,6 +23,7 @@ public class GameBoy
         var cart = new Cartridge();
         if (!cart.LoadCart(argv[0])) return;
         SDL2.SDL_ttf.TTF_Init();
+        
 
         Paused = false;
         Running = true;

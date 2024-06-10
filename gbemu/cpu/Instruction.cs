@@ -24,7 +24,6 @@ public enum AddrMode
     AM_MR,
     AM_A16_R,
     AM_R_A16
-    // ... 其他成员
 }
 
 public enum RegType
@@ -44,7 +43,6 @@ public enum RegType
     RT_HL,
     RT_SP,
     RT_PC
-    // ... 其他成员
 }
 
 public enum InType
@@ -106,7 +104,7 @@ public enum CondType
     // ... 其他成员
 }
 
-public struct Instruction
+public class Instruction
 {
     public InType Type;
     public AddrMode Mode;
