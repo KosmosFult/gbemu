@@ -1,9 +1,9 @@
 using gbemu.bus;
-
 namespace gbemu.cpu;
 
-public class Cpu
+public partial class Cpu
 {
+    
     public class CpuRegisters
     {
         public byte A;
@@ -132,6 +132,8 @@ public class Cpu
         Register = new CpuRegisters();
         Register.PC = 0x100;
         Register.A = 0x01;
+        
+        InitializeFuncMap();
     }
 
     public Cpu(Bus bus) : this()
@@ -178,6 +180,11 @@ public class Cpu
             default:
                 throw new NotSupportedException($"Unknown Addressing Mode {_CurIns.Mode} {_CurOpCode}");
         }
+    }
+
+    public void Execute()
+    {
+        _FuncMap[_CurIns.Type]();
     }
     public bool Step()
     {

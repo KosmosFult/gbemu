@@ -101,7 +101,6 @@ public enum InType
 public enum CondType
 {
     CT_NONE, CT_NZ, CT_Z, CT_NC, CT_C
-    // ... 其他成员
 }
 
 public class Instruction
