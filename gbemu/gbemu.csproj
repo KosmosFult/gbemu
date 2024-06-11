@@ -25,6 +25,7 @@
     <ItemGroup>
       <Folder Include="apu\" />
       <Folder Include="ppu\" />
+      <Folder Include="roms\" />
     </ItemGroup>
 
 </Project>

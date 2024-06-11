@@ -110,7 +110,8 @@ public partial class Cpu
         Register.PC = 0x100;
         Register.A = 0x01;
         
-        InitializeFuncMap();
+        InitFetchFuncMap();
+        InitExecFuncMap();
     }
 
     public Cpu(Bus bus) : this()
@@ -129,47 +130,9 @@ public partial class Cpu
         _CurIns = InstructionSet.GetInstructionByOpcode(_CurOpCode);
     }
 
-    public void FetchData()
+    void FetchData()
     {
-        _MemDest = 0;
-        _DestIsMem = false;
-
-        switch (_CurIns.Mode)
-        {
-            case AddrMode.AM_IMP: return;
-            
-            case AddrMode.AM_R:
-                _FetchedData = ReadReg(_CurIns.Reg1);
-                return;
-            
-            case AddrMode.AM_R_R:
-                _FetchedData = ReadReg(_CurIns.Reg2);
-                return;
-            
-            case AddrMode.AM_R_D8:
-                _FetchedData = _Bus.Read(Register.PC++);
-                OnCycles?.Invoke(1);
-                return;
-            
-            case AddrMode.AM_R_D16:
-            case AddrMode.AM_D16:
-                var low = _Bus.Read(Register.PC++);
-                OnCycles?.Invoke(1);
-                var high = _Bus.Read(Register.PC++);
-                OnCycles?.Invoke(1);
-                _FetchedData = (ushort)(low | (high << 8));
-                return;
-            
-            case AddrMode.AM_MR_R:
-                _FetchedData = ReadReg(_CurIns.Reg2);
-                _MemDest = ReadReg(_CurIns.Reg1);
-                _DestIsMem = true;
-                if (_CurIns.Reg1 == RegType.RT_C)
-                    _MemDest |= 0xff00;
-                return;
-            default:
-                throw new NotSupportedException($"Unknown Addressing Mode {_CurIns.Mode} {_CurOpCode}");
-        }
+        _FetchFuncMap[_CurIns.Mode]();
     }
 
 

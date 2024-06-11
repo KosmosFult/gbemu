@@ -16,7 +16,7 @@ public class CpuTest
     public void CartLoadTest()
     {
         var tCart = new Cartridge();
-        tCart.LoadCart("C:\\Users\\Kosmos\\RiderProjects\\gbemu\\gbemu\\roms\\zelda.gb");
+        tCart.LoadCart("C:\\Users\\kosmo\\RiderProjects\\gbemu\\gbemu\\roms\\zelda.gb");
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class CpuTest
     {
         var tBus = new Bus();
         var tCart = new Cartridge();
-        tCart.LoadCart("C:\\Users\\Kosmos\\RiderProjects\\gbemu\\gbemu\\roms\\zelda.gb");
+        tCart.LoadCart("C:\\Users\\kosmo\\RiderProjects\\gbemu\\gbemu\\roms\\zelda.gb");
         tBus.AddSpace(tCart);
         var v = tBus.Read(0x100);
         Assert.Equal(0, v);

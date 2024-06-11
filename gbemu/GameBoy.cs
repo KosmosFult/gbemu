@@ -37,7 +37,7 @@ public class GameBoy
         if (!_Cart.LoadCart(argv[0])) return;
         
         
-        SDL2.SDL_ttf.TTF_Init();
+        // SDL2.SDL_ttf.TTF_Init();
         
 
         Paused = false;
