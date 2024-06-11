@@ -17,6 +17,17 @@ public partial class Cpu
         public ushort PC;
         public ushort SP;
 
+        public ushort AF
+        {
+            set
+            {
+                A = (byte)((value >> 8) & 0x00ff);
+                F = (byte)(value & 0x00ff);
+            }
+            get => (ushort)((A << 8) | F);
+            
+        }
+
         public ushort BC
         {
             set
@@ -90,42 +101,8 @@ public partial class Cpu
 
     private Bus _Bus;
     
-    // 可以用反射，但太慢
-    private ushort ReadReg(RegType rType)
-    {
-        switch (rType)
-        {
-            case RegType.RT_A:
-                return Register.A;
-            case RegType.RT_F:
-                return Register.F;
-            case RegType.RT_B:
-                return Register.B;
-            case RegType.RT_C:
-                return Register.C;
-            case RegType.RT_D:
-                return Register.D;
-            case RegType.RT_E:
-                return Register.E;
-            case RegType.RT_H:
-                return Register.H;
-            case RegType.RT_L:
-                return Register.L;
-            case RegType.RT_BC:
-                return Register.BC;
-            case RegType.RT_DE:
-                return Register.DE;
-            case RegType.RT_HL:
-                return Register.HL;
-            case RegType.RT_SP:
-                return Register.SP;
-            case RegType.RT_PC:
-                return Register.PC;
-            case RegType.RT_NONE:
-            default:
-                throw new ArgumentException($"Invalid register type {rType}");
-        }
-    }
+    // 通过事件调用Gameboy的cycle方法
+    public event Action<int> OnCycles;
 
     public Cpu()
     {
@@ -165,34 +142,121 @@ public partial class Cpu
                 _FetchedData = ReadReg(_CurIns.Reg1);
                 return;
             
-            case AddrMode.AM_R_D8:
-                _FetchedData = _Bus.Read(Register.PC++);
-                // Update cycle
+            case AddrMode.AM_R_R:
+                _FetchedData = ReadReg(_CurIns.Reg2);
                 return;
             
+            case AddrMode.AM_R_D8:
+                _FetchedData = _Bus.Read(Register.PC++);
+                OnCycles?.Invoke(1);
+                return;
+            
+            case AddrMode.AM_R_D16:
             case AddrMode.AM_D16:
                 var low = _Bus.Read(Register.PC++);
-                // Update cycle
+                OnCycles?.Invoke(1);
                 var high = _Bus.Read(Register.PC++);
-                // Update cycle
+                OnCycles?.Invoke(1);
                 _FetchedData = (ushort)(low | (high << 8));
+                return;
+            
+            case AddrMode.AM_MR_R:
+                _FetchedData = ReadReg(_CurIns.Reg2);
+                _MemDest = ReadReg(_CurIns.Reg1);
+                _DestIsMem = true;
+                if (_CurIns.Reg1 == RegType.RT_C)
+                    _MemDest |= 0xff00;
                 return;
             default:
                 throw new NotSupportedException($"Unknown Addressing Mode {_CurIns.Mode} {_CurOpCode}");
         }
     }
 
+
+    private void SetReg(RegType rType, ushort value)
+    {
+        switch (rType)
+        {
+            case RegType.RT_A:
+                Register.A = (byte)value;
+                return;
+            case RegType.RT_B:
+                Register.B = (byte)value;
+                return;
+            case RegType.RT_C:
+                Register.C = (byte)value;
+                return;
+            case RegType.RT_D:
+                Register.D = (byte)value;
+                return;
+            case RegType.RT_E:
+                Register.E = (byte)value;
+                return;
+            case RegType.RT_F:
+                Register.B = (byte)value;
+                return;
+            case RegType.RT_H:
+                Register.B = (byte)value;
+                return;
+            case RegType.RT_L:
+                Register.L = (byte)value;
+                return;
+            case RegType.RT_AF:
+                Register.AF = value;
+                return;
+            case RegType.RT_BC:
+                Register.BC = value;
+                return;
+            case RegType.RT_DE:
+                Register.DE = value;
+                return;
+            case RegType.RT_HL:
+                Register.HL = value;
+                return;
+        }
+    }
+    
+    // 可以用反射，但太慢
+    private ushort ReadReg(RegType rType)
+    {
+        
+        return rType switch
+        {
+            RegType.RT_A => (ushort)Register.A,
+            RegType.RT_B => (ushort)Register.B,
+            RegType.RT_C => (ushort)Register.C,
+            RegType.RT_D => (ushort)Register.D,
+            RegType.RT_E => (ushort)Register.E,
+            RegType.RT_F => (ushort)Register.F,
+            RegType.RT_H => (ushort)Register.H,
+            RegType.RT_L => (ushort)Register.L,
+            RegType.RT_AF => Register.AF,
+            RegType.RT_BC => Register.BC,
+            RegType.RT_DE => Register.DE,
+            RegType.RT_HL => Register.HL,
+            _ => throw new ArgumentException($"Invalid register type {rType}")
+        };
+        
+    }
+
     public void Execute()
     {
-        _FuncMap[_CurIns.Type]();
+        _ExecFuncMap[_CurIns.Type]();
     }
     public bool Step()
     {
         if (!_Halted)
         {
+            // GameBoy在运算的同时会进行取指，因此可以认为取指不占周期
             var cpc = Register.PC;
             FetchInstruction();
             FetchData();
+            
+            Execute();
+        }
+        else
+        {
+            OnCycles?.Invoke(1);
         }
         return true;
     }

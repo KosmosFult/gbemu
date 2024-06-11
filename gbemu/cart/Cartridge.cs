@@ -5,31 +5,26 @@ namespace Gbemu.cart;
 using System;
 using System.IO;
 
-// 定义ROM头结构体
-public class RomHeader
-{
-    public byte[] Entry; // 入口点代码，长度为4
-    public byte[] Logo; // Logo数据，长度为0x30
-    public string Title; // 游戏标题，长度为16
-    public ushort NewLicCode; // 新的许可证代码
-    public byte SgbFlag; // SGB标志
-    public byte Type; // 游戏类型
-    public byte RomSize; // ROM大小
-    public byte RamSize; // RAM大小
-    public byte DestCode; // 目标代码
-    public byte LicCode; // 许可证代码
-    public byte Version; // 版本号
-    public byte CheckSum; // 校验和
-    public ushort GlobalChecksum; // 全局校验和
-}
+// 定义ROM头结构体 废弃
+// public class RomHeader
+// {
+//     public byte[] Entry; // 入口点代码，长度为4
+//     public byte[] Logo; // Logo数据，长度为0x30
+//     public string Title; // 游戏标题，长度为16
+//     public ushort NewLicCode; // 新的许可证代码
+//     public byte SgbFlag; // SGB标志
+//     public byte Type; // 游戏类型
+//     public byte RomSize; // ROM大小
+//     public byte RamSize; // RAM大小
+//     public byte DestCode; // 目标代码
+//     public byte LicCode; // 许可证代码
+//     public byte Version; // 版本号
+//     public byte CheckSum; // 校验和
+//     public ushort GlobalChecksum; // 全局校验和
+// }
 
 public class Cartridge : IAddressSpace
 {
-    public string Filename { get; private set; }
-    public int RomSize { get; private set; }
-    public byte[] RomData { get; private set; }
-    public RomHeader Header { get; private set; }
-
     private static readonly string[] RomTypes = new string[]
     {
         "ROM ONLY",
@@ -69,7 +64,7 @@ public class Cartridge : IAddressSpace
         "MBC7+SENSOR+RUMBLE+RAM+BATTERY"
     };
 
-    private static readonly Dictionary<byte, string> LicCode = new Dictionary<byte, string>
+    private static readonly Dictionary<byte, string> LicCodeDir = new Dictionary<byte, string>
     {
         [0x00] = "None",
         [0x01] = "Nintendo R&D1",
@@ -133,7 +128,60 @@ public class Cartridge : IAddressSpace
         [0x99] = "Pack in soft",
         [0xA4] = "Konami (Yu-Gi-Oh!)"
     };
+
+    public string Filename { get; private set; }
+
+    public int RomFileSize;
+    public byte[] RomData { get; private set; }
+    // public RomHeader Header { get; private set; }
+
+    // 入口点代码，长度为4
+    public byte[] Entry
+    {
+        get
+        {
+            var entry = new byte[4];
+            Array.Copy(RomData, 0x100, entry, 0, 4);
+            return entry;
+        }
+    }
+
+    // Logo数据，长度为0x30
+    public byte[] Logo
+    {
+        get
+        {
+            var logo = new byte[0x30];
+            Array.Copy(RomData, 0x104, logo, 0, 0x30);
+            return logo;
+        }
+    }
+
+
+    // 游戏标题，长度为16
+    public string Title => System.Text.Encoding.ASCII.GetString(RomData, 0x134, 0x10).TrimEnd('\0');
     
+    // 新的许可证代码
+    public ushort NewLicCode => BitConverter.ToUInt16(new byte[] { RomData[0x0144], RomData[0x0143] }, 0); 
+    
+    // SGB标志
+    public byte SgbFlag => RomData[0x0146];
+    // 游戏类型
+    public byte Type => RomData[0x0147];
+    // ROM大小
+    public byte RomSize => RomData[0x0148];
+    // RAM大小
+    public byte RamSize => RomData[0x0149];
+    // 目标代码
+    public byte DestCode => RomData[0x014A];
+    // 许可证代码
+    public byte LicCode => RomData[0x014B];
+    // 版本号
+    public byte Version => RomData[0x014C];
+    // 校验和
+    public byte CheckSum => RomData[0x014D];
+    // 全局校验和
+    public ushort GlobalChecksum => BitConverter.ToUInt16(new byte[] { RomData[0x014E], RomData[0x014F] }, 0); 
 
     // 加载ROM文件
     public bool LoadCart(string path)
@@ -143,47 +191,27 @@ public class Cartridge : IAddressSpace
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
                 Filename = path;
-                RomSize = (int)fs.Length;
-                RomData = new byte[RomSize];
+                RomFileSize = (int)fs.Length;
+                RomData = new byte[RomFileSize];
                 fs.Read(RomData, 0, (int)fs.Length);
-                
-                // 从ROM数据中解析ROM头信息
-                Header = new RomHeader
-                {
-                    Entry = new byte[4],
-                    Logo = new byte[0x30],
-                    Title = System.Text.Encoding.ASCII.GetString(RomData, 0x134, 0x10).TrimEnd('\0'),
-                    NewLicCode = BitConverter.ToUInt16(new byte[] { RomData[0x0144], RomData[0x0143] }, 0),
-                    SgbFlag = RomData[0x0146],
-                    Type = RomData[0x0147],
-                    RomSize = RomData[0x0148],
-                    RamSize = RomData[0x0149],
-                    DestCode = RomData[0x014A],
-                    LicCode = RomData[0x014B],
-                    Version = RomData[0x014C],
-                    CheckSum = RomData[0x014D],
-                    GlobalChecksum = BitConverter.ToUInt16(new byte[] { RomData[0x014E], RomData[0x014F] }, 0)
-                };
-
-                // 复制entry和logo数据
-                Array.Copy(RomData, 0x100, Header.Entry, 0, 4);
-                Array.Copy(RomData, 0x104, Header.Logo, 0, 0x30);
             }
+
             Console.WriteLine("Cartridge Loaded:");
-            Console.WriteLine("\t Title    : {0}", Header.Title);
-            Console.WriteLine("\t Type     : {0:X2} ({1})", Header.Type, CartTypeName());
-            Console.WriteLine("\t ROM Size : {0} KB", 32 << Header.RomSize);
-            Console.WriteLine("\t RAM Size : {0:X2}", Header.RamSize);
-            Console.WriteLine("\t LIC Code : {0:X2} ({1})", Header.LicCode, CartLicName());
-            Console.WriteLine("\t ROM Vers : {0:X2}", Header.Version);
+            Console.WriteLine("\t Title    : {0}", Title);
+            Console.WriteLine("\t Type     : {0:X2} ({1})", Type, CartTypeName());
+            Console.WriteLine("\t ROM Size : {0} KB", 32 << RomSize);
+            Console.WriteLine("\t RAM Size : {0:X2}", RamSize);
+            Console.WriteLine("\t LIC Code : {0:X2} ({1})", LicCode, CartLicName());
+            Console.WriteLine("\t ROM Vers : {0:X2}", Version);
 
             ushort x = 0;
-            for (ushort i=0x0134; i<=0x014C; i++) {
-                x = (ushort)(x - (ushort)RomData[i]-1);
+            for (ushort i = 0x0134; i <= 0x014C; i++)
+            {
+                x = (ushort)(x - (ushort)RomData[i] - 1);
             }
-            
-            Console.WriteLine("\t Checksum : {0:X2} ({1})\n", Header.CheckSum, (x & 0xFF)!=0 ? "PASSED" : "FAILED");
-            
+
+            Console.WriteLine("\t Checksum : {0:X2} ({1})\n", CheckSum, (x & 0xFF) != 0 ? "PASSED" : "FAILED");
+
             return true;
         }
         catch (Exception ex)
@@ -195,22 +223,24 @@ public class Cartridge : IAddressSpace
 
     private string CartTypeName()
     {
-        if (Header.Type < RomTypes.Length)
+        if (Type < RomTypes.Length)
         {
-            return RomTypes[Header.Type];
+            return RomTypes[Type];
         }
+
         return "UNKNOWN";
     }
 
     private string CartLicName()
     {
-        if (LicCode.TryGetValue(Header.LicCode, out string name))
+        if (LicCodeDir.TryGetValue(LicCode, out string name))
         {
             return name;
         }
+
         return "UNKNOWN";
     }
-    
+
     // 读取ROM数据
     private byte ReadRom(ushort address)
     {
