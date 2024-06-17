@@ -1,9 +1,9 @@
 using gbemu.bus;
+
 namespace gbemu.cpu;
 
 public partial class Cpu
 {
-    
     public class CpuRegisters
     {
         public byte A;
@@ -25,7 +25,6 @@ public partial class Cpu
                 F = (byte)(value & 0x00ff);
             }
             get => (ushort)((A << 8) | F);
-            
         }
 
         public ushort BC
@@ -37,9 +36,8 @@ public partial class Cpu
             }
             get => (ushort)((B << 8) | C);
             // return (ushort)((((ushort)B) << 8 & 0xff00) | ((ushort)C & 0x00ff));
-            
         }
-        
+
         public ushort DE
         {
             set
@@ -49,7 +47,7 @@ public partial class Cpu
             }
             get => (ushort)((D << 8) | E);
         }
-        
+
         public ushort HL
         {
             set
@@ -59,7 +57,6 @@ public partial class Cpu
             }
             get => (ushort)((H << 8) | L);
             // return (ushort)((((ushort)B) << 8 & 0xff00) | ((ushort)C & 0x00ff));
-            
         }
 
         public bool ZF
@@ -67,27 +64,31 @@ public partial class Cpu
             set => F = (byte)(F & 0x7f | (value ? 0x80 : 0x00));
             get => (F & 0x80) == 0x80;
         }
-        
+
         public bool NF
         {
             set => F = (byte)(F & 0xbf | (value ? 0x40 : 0x00));
             get => (F & 0x40) == 0x40;
         }
-        
+
         public bool HF
         {
             set => F = (byte)(F & 0xdf | (value ? 0x20 : 0x00));
             get => (F & 0x20) == 0x20;
         }
-        
+
         public bool CF
         {
             set => F = (byte)(F & 0xef | (value ? 0x10 : 0x00));
             get => (F & 0x10) == 0x10;
         }
+
+        public static bool DoubleReg(RegType rtype) =>
+            rtype == RegType.RT_AF || rtype == RegType.RT_BC || rtype == RegType.RT_DE || rtype == RegType.RT_HL ||
+            rtype == RegType.RT_PC || rtype == RegType.RT_SP;
     }
-    
-    private ushort _FetchedData;  // 双操作数是第二个操作数
+
+    private ushort _FetchedData; // 双操作数是第二个操作数
     private ushort _MemDest;
     private bool _DestIsMem;
     private byte _CurOpCode;
@@ -100,7 +101,7 @@ public partial class Cpu
     public CpuRegisters Register;
 
     private Bus _Bus;
-    
+
     // 通过事件调用Gameboy的cycle方法
     public event Action<int> OnCycles;
 
@@ -109,21 +110,20 @@ public partial class Cpu
         Register = new CpuRegisters();
         Register.PC = 0x100;
         Register.A = 0x01;
-        
+
         InitFetchFuncMap();
         InitExecFuncMap();
     }
 
     public Cpu(Bus bus) : this()
     {
-        
         _Bus = bus;
         // Register = new CpuRegisters();
         // Register.PC = 0x100;
         // Register.A = 0x01;
     }
 
-    
+
     public void FetchInstruction()
     {
         _CurOpCode = _Bus.Read(Register.PC++);
@@ -178,11 +178,10 @@ public partial class Cpu
                 return;
         }
     }
-    
+
     // 可以用反射，但太慢
     private ushort ReadReg(RegType rType)
     {
-        
         return rType switch
         {
             RegType.RT_A => (ushort)Register.A,
@@ -199,13 +198,13 @@ public partial class Cpu
             RegType.RT_HL => Register.HL,
             _ => throw new ArgumentException($"Invalid register type {rType}")
         };
-        
     }
 
     public void Execute()
     {
         _ExecFuncMap[_CurIns.Type]();
     }
+
     public bool Step()
     {
         if (!_Halted)
@@ -214,13 +213,14 @@ public partial class Cpu
             var cpc = Register.PC;
             FetchInstruction();
             FetchData();
-            
+
             Execute();
         }
         else
         {
             OnCycles?.Invoke(1);
         }
+
         return true;
     }
 }

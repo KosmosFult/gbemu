@@ -16,33 +16,6 @@ namespace gbemu.bus;
 // 0xFF00 - 0xFF7F : I/O Registers
 // 0xFF80 - 0xFFFE : Zero Page
 
-// public class Bus
-// {
-//     private Cartridge _Cart;
-//
-//     public Bus(Cartridge cart)
-//     {
-//         _Cart = cart;
-//     }
-//
-//     public byte Read(ushort address)
-//     {
-//         if (address < 0x8000)
-//             return _Cart.GetByte(address);
-//         else
-//         {
-//             throw new NotImplementedException();
-//         }
-//     }
-//
-//     public void Write(ushort address, byte value)
-//     {
-//         if(address < 0x8000)
-//             _Cart.SetByte(address, value);
-//         return;
-//     }
-// }
-
 public class Bus
 {
     private readonly List<IAddressSpace> _addressSpace = new List<IAddressSpace>();
