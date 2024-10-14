@@ -1,5 +1,5 @@
 using gbemu.bus;
-using Gbemu.cart;
+using gbemu.cart;
 using gbemu.cpu;
 using Xunit.Abstractions;
 

@@ -4,7 +4,7 @@ namespace gbemu.cpu;
 
 public partial class Cpu
 {
-    private Dictionary<InType, Action> _ExecFuncMap;
+    private Dictionary<InType, Action> _execFuncMap;
     
     // private struct FlagRes
     // {
@@ -20,7 +20,7 @@ public partial class Cpu
 
     private void InitExecFuncMap()
     {
-        _ExecFuncMap = new Dictionary<InType, Action>();
+        _execFuncMap = new Dictionary<InType, Action>();
 
         // 获取当前类的所有方法
         var methods = this.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
@@ -33,14 +33,14 @@ public partial class Cpu
             var inTypeEnum = (InType)Enum.Parse(typeof(InType), inType);
 
             // 添加到字典
-            _ExecFuncMap.Add(inTypeEnum, method.CreateDelegate<Action>(this));
+            _execFuncMap.Add(inTypeEnum, method.CreateDelegate<Action>(this));
             Console.WriteLine($"Add ExecFunc {method.Name}");
         }
     }
 
     private bool CheckCond()
     {
-        return _CurIns.Cond switch
+        return _curIns.Cond switch
         {
             CondType.CT_NONE => true,
             CondType.CT_C => Register.CF,
@@ -92,7 +92,7 @@ public partial class Cpu
 
     private void _ExecuteNONE()
     {
-        throw new ArgumentException($"Invalid Instruction {_CurOpCode}");
+        throw new ArgumentException($"Invalid Instruction {_curOpCode}");
     }
 
     private void _ExecuteNOP()
@@ -102,42 +102,42 @@ public partial class Cpu
 
     private void _ExecuteDI()
     {
-        _IntMasterEnabled = false;
+        _intMasterEnabled = false;
         OnCycles?.Invoke(1);
 
     }
 
     private void _ExecuteLD()
     {
-        if (_DestIsMem)
+        if (_destIsMem)
         {
-            _Bus.Write(_MemDest, (byte)(_FetchedData & 0x00ff));
+            _bus.Write(_memDest, (byte)(_fetchedData & 0x00ff));
             OnCycles.Invoke(1);
 
-            if (!CpuRegisters.DoubleReg(_CurIns.Reg2)) return;
+            if (!CpuRegisters.DoubleReg(_curIns.Reg2)) return;
             
-            _Bus.Write(_MemDest, (byte)(_FetchedData & 0x00ff));
+            _bus.Write(_memDest, (byte)(_fetchedData & 0x00ff));
             OnCycles.Invoke(1);
 
             return;
         }
 
-        if (_CurIns.Mode == AddrMode.AM_HL_SPR)
+        if (_curIns.Mode == AddrMode.AM_HL_SPR)
         {
-            var value = _Add_16_8_SignedLogic(ReadReg(_CurIns.Reg2), _FetchedData);
+            var value = _Add_16_8_SignedLogic(ReadReg(_curIns.Reg2), _fetchedData);
             OnCycles?.Invoke(1);
-            SetReg(_CurIns.Reg1, value);
+            SetReg(_curIns.Reg1, value);
             OnCycles?.Invoke(1);
             return;
         }
         
-        SetReg(_CurIns.Reg1, _FetchedData);
+        SetReg(_curIns.Reg1, _fetchedData);
         OnCycles?.Invoke(1);
     }
 
     private void _ExecuteXOR()
     {
-        Register.A ^= (byte)(_FetchedData & 0xFF);
+        Register.A ^= (byte)(_fetchedData & 0xFF);
         Register.ZF = (Register.A == 0);
         OnCycles?.Invoke(1);
     }
@@ -146,10 +146,18 @@ public partial class Cpu
     {
         if (CheckCond())
         {
-            Register.PC = _FetchedData;
+            Register.PC = _fetchedData;
             OnCycles?.Invoke(1);
         }
         
+        OnCycles?.Invoke(1);
+    }
+
+    private void _ExecuteCALL()
+    {
+        StackPush16(Register.PC);
+        OnCycles?.Invoke(2);
+        Register.PC = _fetchedData;
         OnCycles?.Invoke(1);
     }
 }

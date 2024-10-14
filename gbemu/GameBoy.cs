@@ -1,29 +1,33 @@
 // using System.IO;
 
 using gbemu.bus;
-using Gbemu.cart;
+using gbemu.cart;
 using gbemu.cpu;
 using SDL2;
+using gbemu.ram;
 
 namespace gbemu;
 
 public class GameBoy
 {
-    private bool Paused;
-    private bool Running;
+    private bool _paused;
+    private bool _running;
     public ulong Ticks;   // 时钟
 
-    private Cpu _Cpu;
-    private Bus _Bus;
-    private Cartridge _Cart;
+    private Cpu _cpu;
+    private Bus _bus;
+    private Cartridge _cart;
+    private HighRAM _hram;
 
     public GameBoy()
     {
-        _Bus = new Bus();
-        _Cpu = new Cpu(_Bus);
-        _Cart = new Cartridge();
-        _Bus.AddSpace(_Cart);
-        _Cpu.OnCycles += Cycles;
+        _bus = new Bus();
+        _cpu = new Cpu(_bus);
+        _cart = new Cartridge();
+        _hram = new HighRAM();
+        _bus.AddSpace(_cart);
+        _bus.AddSpace(_hram);
+        _cpu.OnCycles += Cycles;
     }
 
     public void Run(string[] argv)
@@ -34,27 +38,27 @@ public class GameBoy
             return;
         }
         
-        if (!_Cart.LoadCart(argv[0])) return;
+        if (!_cart.LoadCart(argv[0])) return;
         
         
         // SDL2.SDL_ttf.TTF_Init();
         
 
-        Paused = false;
-        Running = true;
+        _paused = false;
+        _running = true;
         Ticks = 0;
         
         Console.WriteLine("Game Boy Running");
 
-        while (Running)
+        while (_running)
         {
-            if (Paused)
+            if (_paused)
             {
                 SDL.SDL_Delay(10);
                 continue;
             }
 
-            if (!_Cpu.Step())
+            if (!_cpu.Step())
             {
                 Console.WriteLine("Cpu Stop");
                 return;

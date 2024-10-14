@@ -88,19 +88,19 @@ public partial class Cpu
             rtype == RegType.RT_PC || rtype == RegType.RT_SP;
     }
 
-    private ushort _FetchedData; // 双操作数是第二个操作数
-    private ushort _MemDest;
-    private bool _DestIsMem;
-    private byte _CurOpCode;
-    private Instruction _CurIns;
-    private bool _Halted;
-    private bool _Stepping;
+    private ushort _fetchedData; // 双操作数是第二个操作数
+    private ushort _memDest;
+    private bool _destIsMem;
+    private byte _curOpCode;
+    private Instruction _curIns;
+    private bool _halted = false;
+    private bool _stepping;
 
-    private bool _IntMasterEnabled;
+    private bool _intMasterEnabled;
 
     public CpuRegisters Register;
 
-    private Bus _Bus;
+    private Bus _bus;
 
     // 通过事件调用Gameboy的cycle方法
     public event Action<int> OnCycles;
@@ -108,8 +108,13 @@ public partial class Cpu
     public Cpu()
     {
         Register = new CpuRegisters();
-        Register.PC = 0x100;
-        Register.A = 0x01;
+        Register.PC = 0x0100;
+        Register.SP = 0xFFFE;
+        Register.AF = 0x01B0;
+        Register.BC = 0x0013;
+        Register.DE = 0x00D8;
+        Register.HL = 0x014D;
+        _halted = false;
 
         InitFetchFuncMap();
         InitExecFuncMap();
@@ -117,7 +122,7 @@ public partial class Cpu
 
     public Cpu(Bus bus) : this()
     {
-        _Bus = bus;
+        _bus = bus;
         // Register = new CpuRegisters();
         // Register.PC = 0x100;
         // Register.A = 0x01;
@@ -126,13 +131,13 @@ public partial class Cpu
 
     public void FetchInstruction()
     {
-        _CurOpCode = _Bus.Read(Register.PC++);
-        _CurIns = InstructionSet.GetInstructionByOpcode(_CurOpCode);
+        _curOpCode = _bus.Read(Register.PC++);
+        _curIns = InstructionSet.GetInstructionByOpcode(_curOpCode);
     }
 
     void FetchData()
     {
-        _FetchFuncMap[_CurIns.Mode]();
+        _fetchFuncMap[_curIns.Mode]();
     }
 
 
@@ -200,20 +205,34 @@ public partial class Cpu
         };
     }
 
+    private void StackPush(byte data)
+    {
+        _bus.Write(--Register.SP, data);
+    }
+
+    private void StackPush16(ushort data)
+    {
+        StackPush((byte)((data >> 8) & 0xFF));
+        StackPush((byte)(data & 0xFF));
+    }
+
+    private byte StackPop() => _bus.Read(Register.SP++);
+    
+    
+
     public void Execute()
     {
-        _ExecFuncMap[_CurIns.Type]();
+        _execFuncMap[_curIns.Type]();
     }
 
     public bool Step()
     {
-        if (!_Halted)
+        if (!_halted)
         {
             // GameBoy在运算的同时会进行取指，因此可以认为取指不占周期
             var cpc = Register.PC;
             FetchInstruction();
             FetchData();
-
             Execute();
         }
         else

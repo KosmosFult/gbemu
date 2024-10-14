@@ -1,6 +1,6 @@
 using gbemu;
 
-namespace Gbemu.cart;
+namespace gbemu.cart;
 
 using System;
 using System.IO;

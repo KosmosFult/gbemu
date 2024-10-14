@@ -1,4 +1,4 @@
-using Gbemu.cart;
+using gbemu.cart;
 
 namespace gbemu.bus;
 
